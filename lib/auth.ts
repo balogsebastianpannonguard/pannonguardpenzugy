@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
+import { createHash } from "crypto";
 import { getMongoDb } from "./mongodb";
 
 export const AUTH_COOKIE_NAME = "pannon_penzugy_session";
@@ -49,19 +50,62 @@ export async function verifyCredentials(
   }
 }
 
-export function createSessionToken(user: SessionUser): string {
-  return jwt.sign(user as object, SECRET, { expiresIn: "12h" });
+/** A személyes belépő linkkel (telefonról, főképernyőről) nyitott munkamenet ennyi napig él. */
+export const DIRECT_LOGIN_SESSION_DAYS = 30;
+
+export function createSessionToken(user: SessionUser, days?: number): string {
+  return jwt.sign(user as object, SECRET, { expiresIn: days ? `${days}d` : "12h" });
 }
 
-export async function setSessionCookie(token: string) {
+export async function setSessionCookie(token: string, days?: number) {
   const store = await cookies();
   store.set(AUTH_COOKIE_NAME, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: 60 * 60 * 12,
+    maxAge: days ? 60 * 60 * 24 * days : 60 * 60 * 12,
   });
+}
+
+/**
+ * Személyes, jelszó nélküli belépő link (?token=...) feloldása. A token SHA-256 lenyomata a közös
+ * staff_users kollekcióban van (directLoginTokenHash) – ugyanaz a mező, amit az Outlook-naptár is használ.
+ * Csak aktivált admin/diszpécser fiók léphet be vele.
+ */
+export async function findUserByDirectLoginToken(
+  rawToken: string
+): Promise<{ user: SessionUser; staffId: unknown } | null> {
+  const token = rawToken.trim();
+  if (!/^[a-f0-9]{32,128}$/i.test(token)) return null;
+  try {
+    const db = await getMongoDb();
+    const hash = createHash("sha256").update(token).digest("hex");
+    const doc = await db.collection("staff_users").findOne({ directLoginTokenHash: hash });
+    if (!doc || !doc.isActivated) return null;
+    if (doc.role !== "admin" && doc.role !== "dispatcher") return null;
+    return {
+      staffId: doc._id,
+      user: {
+        email: doc.email,
+        name: doc.name || String(doc.email).split("@")[0],
+        role: doc.role,
+        loginAt: Date.now(),
+      },
+    };
+  } catch (err) {
+    console.error("[findUserByDirectLoginToken]", err);
+    return null;
+  }
+}
+
+export async function recordStaffLogin(staffId: unknown): Promise<void> {
+  try {
+    const db = await getMongoDb();
+    await db.collection("staff_users").updateOne({ _id: staffId as never }, { $set: { lastLoginAt: Date.now(), updatedAt: Date.now() } });
+  } catch (err) {
+    console.error("[recordStaffLogin]", err);
+  }
 }
 
 export async function clearSessionCookie() {
