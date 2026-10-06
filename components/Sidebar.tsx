@@ -4,10 +4,10 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import clsx from "clsx";
-import { Coins, CreditCard, FileSignature, Fuel, Landmark, LayoutDashboard, LogOut, Menu, Wallet, X } from "lucide-react";
+import { CalendarRange, Coins, CreditCard, FileSignature, Fuel, Landmark, LayoutDashboard, LogOut, Menu, Wallet, X } from "lucide-react";
 import { MODULES } from "@/lib/modules";
 
-const ICONS = { Coins, CreditCard, FileSignature, Fuel, Landmark, Wallet } as const;
+const ICONS = { CalendarRange, Coins, CreditCard, FileSignature, Fuel, Landmark, Wallet } as const;
 
 export default function Sidebar({ userName, userRole }: { userName: string; userRole: string }) {
   const pathname = usePathname();

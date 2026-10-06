@@ -33,7 +33,7 @@ export interface ModuleDef {
   title: string;
   description: string;
   icon: string;
-  kind: "records" | "cash";
+  kind: "records" | "cash" | "monthly";
   currency?: "HUF" | "RON";
   tabs: Tab[];
 }
@@ -194,6 +194,41 @@ export const MODULES: ModuleDef[] = [
     kind: "cash",
     currency: "RON",
     tabs: [],
+  },
+  {
+    slug: "havi-kimutatas",
+    title: "Havi kimutatás",
+    description: "Havi fuvarnapló és elszámolás: útvonalak, kilométerek, fizetési módok, viteldíjak, sofőrök és cégek táblázatban és előnézetben.",
+    icon: "CalendarRange",
+    kind: "monthly",
+    tabs: [
+      {
+        key: "fin_monthly_trips",
+        label: "Havi kimutatás",
+        singular: "fuvar",
+        sortField: "date",
+        fields: [
+          { key: "date", label: "Dátum", type: "date", required: true },
+          { key: "from", label: "Indulási hely", type: "text", required: true },
+          { key: "to", label: "Célállomás", type: "text", required: true },
+          { key: "scope", label: "Belföldi / külföldi", type: "select", defaultValue: "domestic", options: opt([["domestic", "Belföldi", "blue"], ["foreign", "Külföldi", "amber"]]) },
+          { key: "departure", label: "Indulás", type: "text" },
+          { key: "arrival", label: "Érkezés", type: "text" },
+          { key: "startKm", label: "Kezdő km", type: "number" },
+          { key: "endKm", label: "Záró km", type: "number" },
+          { key: "paxKm", label: "Utas km", type: "number" },
+          { key: "foreignFee", label: "Külföldi viteldíj", type: "money", currency: "Ft" },
+          { key: "payMethod", label: "Fizetési mód", type: "select", defaultValue: "transfer", options: opt([["cash", "Készpénz", "emerald"], ["card", "Bankkártya", "violet"], ["transfer", "Utalás", "blue"], ["none", "Nincs díj", "slate"]]) },
+          { key: "grossFee", label: "Viteldíj (bruttó)", type: "money", currency: "Ft" },
+          { key: "ratePerKm", label: "Viteldíj/km", type: "money", currency: "Ft" },
+          { key: "passengers", label: "Utasok száma", type: "number" },
+          { key: "transferTime", label: "Transzfer időigénye", type: "text" },
+          { key: "driver", label: "Sofőr neve", type: "ref", ref: "drivers" },
+          { key: "plates", label: "Autó rendszáma", type: "ref", ref: "vehicles" },
+          { key: "company", label: "Cég", type: "text" },
+        ],
+      },
+    ],
   },
   {
     slug: "uzemanyag",
